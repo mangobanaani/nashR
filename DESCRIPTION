@@ -1,0 +1,19 @@
+Package: econtk
+Title: Economic Toolkit for Game Theory
+Version: 0.1.0
+Authors@R: person("Pekka", role = c("aut", "cre"))
+Description: Research-grade game theory toolkit for R. Covers non-cooperative
+    games (Nash equilibrium computation via Lemke-Howson, support enumeration,
+    vertex enumeration), cooperative games (Shapley value, core, nucleolus),
+    auction theory, mechanism design, and evolutionary dynamics. Performance-
+    critical algorithms implemented in C.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Imports:
+    R6
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+NeedsCompilation: yes
