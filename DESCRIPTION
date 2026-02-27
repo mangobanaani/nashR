@@ -1,7 +1,7 @@
 Package: econtk
 Title: Economic Toolkit for Game Theory
 Version: 0.1.0
-Authors@R: person("Pekka", role = c("aut", "cre"))
+Authors@R: person("Pekka", "Maintainer", email = "pekka@example.com", role = c("aut", "cre"))
 Description: Research-grade game theory toolkit for R. Covers non-cooperative
     games (Nash equilibrium computation via Lemke-Howson, support enumeration,
     vertex enumeration), cooperative games (Shapley value, core, nucleolus),
