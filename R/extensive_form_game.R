@@ -75,13 +75,21 @@ ExtensiveFormGame <- R6::R6Class(
 
     #' @field n_players Number of players.
     n_players = function() {
-      players <- vapply(
-        self$nodes[self$decision_nodes],
-        function(n) n$player,
-        integer(1)
-      )
-      if (length(players) == 0) return(0L)
-      as.integer(max(players))
+      decision <- self$decision_nodes
+      terminal <- self$terminals
+      n_from_decisions <- 0L
+      if (length(decision) > 0) {
+        n_from_decisions <- max(vapply(
+          self$nodes[decision], function(n) n$player, integer(1)
+        ))
+      }
+      n_from_terminals <- 0L
+      if (length(terminal) > 0) {
+        n_from_terminals <- max(vapply(
+          self$nodes[terminal], function(n) length(n$payoffs), integer(1)
+        ))
+      }
+      as.integer(max(n_from_decisions, n_from_terminals))
     },
 
     #' @field terminals Character vector of terminal node ids.
