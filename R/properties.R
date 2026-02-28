@@ -78,11 +78,6 @@ dominant_strategy <- function(game) {
   for (p in seq_len(n)) {
     # Build opponent strategy index grid
     opp_dims <- ns[-p]
-    if (length(opp_dims) == 0L) {
-      # Single player game -- every strategy trivially dominates
-      result[[p]] <- game$strategies[[p]][1]
-      next
-    }
     opp_profiles <- as.matrix(expand.grid(lapply(opp_dims, seq_len)))
 
     dominant <- NULL

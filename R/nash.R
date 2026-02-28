@@ -8,11 +8,14 @@
 #' @param method Character string specifying the algorithm:
 #'   \describe{
 #'     \item{\code{"auto"}}{For 2-player games, uses support enumeration.
-#'       For N-player games (N > 2), uses pure strategy enumeration.}
+#'       For N-player games (N > 2), uses homotopy continuation.}
 #'     \item{\code{"pure"}}{Pure strategy enumeration via \code{\link{pure_nash}},
 #'       with results converted to mixed strategy format.}
 #'     \item{\code{"support"}}{Support enumeration via
 #'       \code{\link{support_enumeration}} (2-player games only).}
+#'     \item{\code{"homotopy"}}{Homotopy continuation via
+#'       \code{\link{homotopy_nash}} (any number of players). Returns a single
+#'       equilibrium.}
 #'   }
 #' @return A list of equilibria. Each equilibrium is a list with:
 #'   \describe{
@@ -24,13 +27,13 @@
 nash_equilibria <- function(game, method = "auto") {
   stopifnot(inherits(game, "NormalFormGame"))
 
-  method <- match.arg(method, c("auto", "pure", "support"))
+  method <- match.arg(method, c("auto", "pure", "support", "homotopy"))
 
   if (method == "auto") {
     if (game$n_players == 2L) {
       method <- "support"
     } else {
-      method <- "pure"
+      method <- "homotopy"
     }
   }
 
@@ -39,6 +42,11 @@ nash_equilibria <- function(game, method = "auto") {
       stop("Support enumeration requires a 2-player game")
     }
     return(support_enumeration(game))
+  }
+
+  if (method == "homotopy") {
+    result <- homotopy_nash(game)
+    return(list(result))
   }
 
   if (method == "pure") {

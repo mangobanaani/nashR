@@ -24,10 +24,12 @@ replicator_dynamics <- function(game, x0, t_max, dt = 0.01) {
   stopifnot(game$n_players == 2L)
 
   ns <- game$n_strategies
+  if (ns[1] != ns[2]) {
+    stop("replicator_dynamics requires a symmetric game (equal strategy counts)")
+  }
   n_strats <- ns[1]
   stopifnot(length(x0) == n_strats)
   stopifnot(abs(sum(x0) - 1) < 1e-10)
-
 
   # Extract the payoff matrix A for player 1 (row player)
   # A[i,j] = payoff to player 1 when row plays i, column plays j
@@ -90,6 +92,7 @@ replicator_dynamics <- function(game, x0, t_max, dt = 0.01) {
 fictitious_play <- function(game, n_rounds) {
   stopifnot(inherits(game, "NormalFormGame"))
   stopifnot(game$n_players == 2L)
+  stopifnot(n_rounds >= 1L)
 
   ns <- game$n_strategies
   actions <- vector("list", n_rounds)
@@ -176,6 +179,9 @@ best_response_dynamics <- function(game, x0, n_rounds, alpha = 0.5) {
   stopifnot(game$n_players == 2L)
 
   ns <- game$n_strategies
+  if (ns[1] != ns[2]) {
+    stop("best_response_dynamics requires a symmetric game (equal strategy counts)")
+  }
   n_strats <- ns[1]
   stopifnot(length(x0) == n_strats)
   stopifnot(abs(sum(x0) - 1) < 1e-10)
@@ -228,14 +234,17 @@ is_ess <- function(game, strategy, tol = 1e-10) {
   stopifnot(game$n_players == 2L)
 
   ns <- game$n_strategies
+  if (ns[1] != ns[2]) {
+    stop("is_ess requires a symmetric game (equal strategy counts)")
+  }
   n_strats <- ns[1]
   stopifnot(length(strategy) == n_strats)
   stopifnot(abs(sum(strategy) - 1) < tol)
 
   # Extract the payoff matrix A for player 1
-  A <- matrix(0, nrow = n_strats, ncol = ns[2])
+  A <- matrix(0, nrow = n_strats, ncol = n_strats)
   for (i in seq_len(n_strats)) {
-    for (j in seq_len(ns[2])) {
+    for (j in seq_len(n_strats)) {
       A[i, j] <- game$payoff(c(i, j))[1]
     }
   }
@@ -243,14 +252,9 @@ is_ess <- function(game, strategy, tol = 1e-10) {
   x <- strategy
 
   # Condition 1: x must be a best response to itself
-  # payoff of x against x: x'Ax
-  payoff_xx <- as.numeric(t(x) %*% A %*% x)
-
-  # Check each pure strategy's payoff against x
   payoffs_against_x <- as.numeric(A %*% x)
   max_payoff <- max(payoffs_against_x)
 
-  # x must achieve the maximum payoff against itself
   payoff_x_vs_x <- sum(x * payoffs_against_x)
   if (payoff_x_vs_x < max_payoff - tol) {
     return(FALSE)  # Not a best response to itself
@@ -261,16 +265,12 @@ is_ess <- function(game, strategy, tol = 1e-10) {
   br_indices <- which(payoffs_against_x >= max_payoff - tol)
 
   for (i in br_indices) {
-    # Pure strategy e_i
     y <- numeric(n_strats)
     y[i] <- 1
 
-    # Skip if y == x (within tolerance)
     if (all(abs(y - x) < tol)) next
 
-    # x'Ay: payoff of x against y
     payoff_x_vs_y <- as.numeric(t(x) %*% A %*% y)
-    # y'Ay: payoff of y against y
     payoff_y_vs_y <- as.numeric(t(y) %*% A %*% y)
 
     if (payoff_x_vs_y <= payoff_y_vs_y + tol) {
@@ -278,12 +278,41 @@ is_ess <- function(game, strategy, tol = 1e-10) {
     }
   }
 
-  # Also check mixed strategies over the best response set
-  # For 2x2 games, checking pure strategies suffices since any convex
+  # For games with 3+ strategies, pure strategy checks alone are
+  # insufficient: a mixed deviation over the best response set could
+  # violate x'Ay > y'Ay. Use the algebraic condition: the payoff matrix
+  # restricted to the support must be negative definite on the tangent
+  # space of the simplex (vectors summing to zero).
+  supp <- which(x > tol)
+  k <- length(supp)
 
-  # combination of alternative best responses would also need to satisfy
-  # the condition, and it's enough to check the vertices.
-  # For larger games, a more thorough check would be needed.
+  if (k >= 2) {
+    A_supp <- A[supp, supp, drop = FALSE]
+
+    if (k == 2) {
+      # For 2-strategy support, check the single tangent direction
+      # z = (1, -1) restricted to support
+      z <- c(1, -1)
+      if (as.numeric(t(z) %*% A_supp %*% z) >= -tol) {
+        return(FALSE)
+      }
+    } else {
+      # Build (k-1) x (k-1) matrix M on the tangent space by eliminating
+      # the last coordinate using the constraint sum(z) = 0.
+      # M[i,j] = A_S[i,j] - A_S[k,j] - A_S[i,k] + A_S[k,k]
+      M <- matrix(0, nrow = k - 1, ncol = k - 1)
+      for (i in seq_len(k - 1)) {
+        for (j in seq_len(k - 1)) {
+          M[i, j] <- A_supp[i, j] - A_supp[k, j] - A_supp[i, k] + A_supp[k, k]
+        }
+      }
+      M_sym <- (M + t(M)) / 2
+      evals <- eigen(M_sym, symmetric = TRUE, only.values = TRUE)$values
+      if (any(evals >= -tol)) {
+        return(FALSE)
+      }
+    }
+  }
 
   TRUE
 }

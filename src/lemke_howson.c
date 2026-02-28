@@ -1,4 +1,4 @@
-#include "econtk.h"
+#include "nashR.h"
 #include <stdlib.h>
 #include <math.h>
 
@@ -54,6 +54,9 @@
 static void pivot(double *tab, int n_rows, int n_total_cols,
                   int pivot_row, int pivot_col) {
     double pivot_elem = tab[pivot_row * n_total_cols + pivot_col];
+    if (fabs(pivot_elem) < TOL) {
+        error("Lemke-Howson: zero pivot element at row %d, col %d", pivot_row, pivot_col);
+    }
 
     /* Scale pivot row */
     for (int j = 0; j < n_total_cols; j++) {

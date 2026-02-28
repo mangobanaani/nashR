@@ -61,7 +61,7 @@ test_that("pure_nash works for 3-player game", {
 
   eq <- pure_nash(g)
   # Should find at least one equilibrium (the game has few strategies)
-  expect_true(length(eq) >= 0)  # just verify it runs without error
+  expect_true(length(eq) >= 1)  # should find at least one equilibrium
   for (e in eq) {
     expect_length(e$profile, 3)
     expect_length(e$payoffs, 3)

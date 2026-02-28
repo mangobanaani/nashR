@@ -1,0 +1,106 @@
+---
+title: "Cooperative Game Theory"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Cooperative Game Theory}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(nashR)
+```
+
+## Cooperative Games
+
+A cooperative (TU) game is defined by a set of players and a characteristic
+function `v(S)` that assigns a value to each coalition `S`.
+
+```{r create}
+# 3-player majority game: any coalition of 2+ players wins
+game <- cooperative_game(
+  players = c("A", "B", "C"),
+  value = function(S) if (length(S) >= 2) 1 else 0
+)
+game
+```
+
+## Shapley Value
+
+The Shapley value gives each player their average marginal contribution
+across all possible orderings.
+
+```{r shapley}
+sv <- shapley_value(game)
+sv
+# In the majority game, each player is equally pivotal
+```
+
+The glove game illustrates asymmetric power:
+
+```{r glove}
+# Player 1 has a left glove, Players 2 and 3 have right gloves
+# A pair (left + right) is worth 1
+glove <- cooperative_game(
+  players = c("Left", "Right1", "Right2"),
+  value = function(S) {
+    has_left <- "Left" %in% S
+    has_right <- "Right1" %in% S || "Right2" %in% S
+    if (has_left && has_right) 1 else 0
+  }
+)
+shapley_value(glove)
+# Player with the scarce resource (Left) gets more
+```
+
+## The Core
+
+The core is the set of allocations that no coalition can improve upon.
+
+```{r core}
+# Check if the Shapley value is in the core
+sv <- shapley_value(game)
+in_core(game, sv)
+
+# Get the constraint matrix for the core
+constraints <- core_constraints(game)
+constraints
+```
+
+## Nucleolus
+
+The nucleolus minimizes the maximum excess (complaint) of any coalition.
+It always lies in the core when the core is non-empty.
+
+```{r nucleolus}
+nuc <- nucleolus(game)
+nuc
+in_core(game, nuc)
+```
+
+A more complex example with 4 players:
+
+```{r nucleolus-4}
+# Airport cost game: runway costs shared by aircraft of different sizes
+airport <- cooperative_game(
+  players = c("Small", "Medium", "Large", "Jumbo"),
+  value = function(S) {
+    costs <- c(Small = 1, Medium = 2, Large = 3, Jumbo = 4)
+    if (length(S) == 0) return(0)
+    # Cost savings from sharing = max single cost - sum of individual costs
+    # Simplified: value = sum of smaller planes' savings
+    max(costs[S])
+  }
+)
+shapley_value(airport)
+nucleolus(airport)
+```
+
+## Superadditivity
+
+A game is superadditive if merging coalitions never decreases total value.
+
+```{r superadditive}
+is_superadditive(game)
+```

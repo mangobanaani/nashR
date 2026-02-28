@@ -1,5 +1,7 @@
-^docs$
 ^\.git$
 ^\.gitignore$
 ^.*\.Rproj$
 ^gen_man\.R$
+^Makefile$
+^README\.md$
+^CONTRIBUTING\.md$

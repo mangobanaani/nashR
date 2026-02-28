@@ -17,6 +17,10 @@ normal_form <- function(players, strategies, payoffs) {
 
   if (is.list(payoffs) && !is.array(payoffs)) {
     # List of matrices — convert to the array format NormalFormGame expects
+    if (n != 2L) {
+      stop("List-of-matrices payoffs are only supported for 2-player games. ",
+           "For ", n, " players, supply a payoff array directly.")
+    }
     if (length(payoffs) != n) {
       stop("Length of payoffs list (", length(payoffs),
            ") must equal the number of players (", n, ")")

@@ -25,7 +25,7 @@ in_core <- function(game, allocation, tol = 1e-8) {
 
   # Coalition rationality: for every non-empty proper subset S of N,
   # sum(allocation[S]) >= v(S)
-  for (mask in 1:(2^n - 2)) {
+  for (mask in seq_len(2^n - 2)) {
     S <- players[which(bitwAnd(mask, 2L^(seq_len(n) - 1L)) > 0L)]
     if (sum(allocation[S]) < game$value(S) - tol) {
       return(FALSE)
@@ -62,7 +62,7 @@ core_constraints <- function(game) {
   b <- numeric(n_coalitions)
 
   row <- 0
-  for (mask in 1:(2^n - 2)) {
+  for (mask in seq_len(2^n - 2)) {
     row <- row + 1
     members <- which(bitwAnd(mask, 2L^(seq_len(n) - 1L)) > 0L)
     A[row, members] <- 1

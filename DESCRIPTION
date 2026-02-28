@@ -1,19 +1,22 @@
-Package: econtk
-Title: Economic Toolkit for Game Theory
+Package: nashR
+Title: Nash Equilibrium and Game Theory Toolkit
 Version: 0.1.0
 Authors@R: person("Pekka", "Maintainer", email = "pekka@example.com", role = c("aut", "cre"))
 Description: Research-grade game theory toolkit for R. Covers non-cooperative
     games (Nash equilibrium computation via Lemke-Howson, support enumeration,
-    vertex enumeration), cooperative games (Shapley value, core, nucleolus),
-    auction theory, mechanism design, and evolutionary dynamics. Performance-
-    critical algorithms implemented in C.
-License: MIT + file LICENSE
+    homotopy continuation), cooperative games (Shapley value, core, nucleolus),
+    Bayesian games, auction theory, mechanism design, and evolutionary dynamics.
+    Performance-critical algorithms implemented in C.
+License: GPL (>= 3) + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Imports:
     R6
 Suggests:
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
 Config/testthat/edition: 3
 NeedsCompilation: yes

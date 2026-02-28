@@ -50,7 +50,7 @@ lemke_howson <- function(game, init_label = 1L) {
   }
 
   result <- .Call("c_lemke_howson", A, B, as.integer(m), as.integer(n),
-                  init_label, PACKAGE = "econtk")
+                  init_label, PACKAGE = "nashR")
 
   # Adjust payoffs back by removing the shift
   payoff1 <- result$payoff1 - shift_A

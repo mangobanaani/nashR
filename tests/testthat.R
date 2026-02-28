@@ -1,4 +1,4 @@
 library(testthat)
-library(econtk)
+library(nashR)
 
-test_check("econtk")
+test_check("nashR")

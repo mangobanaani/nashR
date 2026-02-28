@@ -1,0 +1,183 @@
+---
+title: "Auctions and Mechanism Design"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Auctions and Mechanism Design}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(nashR)
+```
+
+## Auction Formats
+
+nashR supports three common sealed-bid auction formats.
+
+### First-Price Auction
+
+The highest bidder wins and pays their bid.
+
+```{r first-price}
+# 3 bidders with known values, discrete bid levels
+fpa <- first_price_auction(
+  n_bidders = 3,
+  values = c(10, 8, 6),
+  bid_levels = seq(0, 10, by = 1)
+)
+# Find Nash equilibria
+eqs <- nash_equilibria(fpa, method = "pure")
+length(eqs)
+```
+
+### Second-Price (Vickrey) Auction
+
+The highest bidder wins but pays the second-highest bid.
+Truthful bidding is a dominant strategy.
+
+```{r second-price}
+spa <- second_price_auction(
+  n_bidders = 2,
+  values = c(10, 7),
+  bid_levels = seq(0, 10, by = 1)
+)
+# With truthful bidding, bidder 1 bids 10 and pays 7
+ds <- dominant_strategy(spa)
+ds
+```
+
+### All-Pay Auction
+
+All bidders pay their bids, but only the highest bidder wins the prize.
+
+```{r all-pay}
+apa <- all_pay_auction(
+  n_bidders = 2,
+  values = c(5, 5),
+  bid_levels = c(0, 1, 2, 3)
+)
+eqs <- nash_equilibria(apa)
+length(eqs)
+```
+
+## Optimal Bidding
+
+For first-price auctions with independent private values drawn from a
+uniform distribution, the Bayesian Nash equilibrium bid function is known
+analytically.
+
+```{r optimal-bid}
+# Optimal bid with value 80, among 4 bidders, uniform [0, 100]
+bid <- optimal_bid_first_price(value = 80, n_bidders = 4)
+bid
+# BNE bid = value * (n-1)/n = 80 * 3/4 = 60
+```
+
+## Revenue Equivalence
+
+Under standard assumptions (independent private values, risk neutrality),
+all standard auctions yield the same expected revenue.
+
+```{r revenue}
+# Expected revenue with 3 bidders, uniform [0, 1]
+rev_first <- expected_revenue("first_price", n_bidders = 3)
+rev_second <- expected_revenue("second_price", n_bidders = 3)
+
+rev_first
+rev_second
+# Both equal (n-1)/(n+1) = 2/4 = 0.5
+```
+
+## VCG Mechanism
+
+The Vickrey-Clarke-Groves mechanism achieves efficient allocation
+with dominant strategy incentive compatibility.
+
+```{r vcg}
+# Single-item allocation: 3 agents with values for the item
+valuations <- list(
+  agent1 = c(item = 10),
+  agent2 = c(item = 8),
+  agent3 = c(item = 6)
+)
+
+# Efficient allocation: give to highest-value agent
+allocation_rule <- function(vals) {
+  alloc <- rep(0, length(vals))
+  best <- which.max(sapply(vals, function(v) v["item"]))
+  alloc[best] <- 1
+  alloc
+}
+
+result <- vcg_mechanism(valuations, allocation_rule)
+result$allocation  # Agent 1 wins
+result$payments    # Agent 1 pays 8 (second-highest value)
+result$utilities
+```
+
+## Incentive Compatibility
+
+Check whether a mechanism is dominant strategy incentive compatible (DSIC).
+
+```{r ic}
+# Vickrey auction mechanism: allocation + payment as separate functions
+vickrey <- list(
+  allocation = function(reports) {
+    alloc <- rep(0, length(reports))
+    alloc[which.max(reports)] <- 1
+    alloc
+  },
+  payment = function(reports) {
+    n <- length(reports)
+    pays <- rep(0, n)
+    winner <- which.max(reports)
+    pays[winner] <- sort(reports, decreasing = TRUE)[2]
+    pays
+  }
+)
+
+is_ic <- is_incentive_compatible(
+  mechanism = vickrey,
+  n_agents = 2,
+  type_space = c(1, 2, 3)
+)
+is_ic  # TRUE: Vickrey is DSIC
+
+# First-price auction is NOT DSIC
+first_price <- list(
+  allocation = function(reports) {
+    alloc <- rep(0, length(reports))
+    alloc[which.max(reports)] <- 1
+    alloc
+  },
+  payment = function(reports) {
+    pays <- rep(0, length(reports))
+    winner <- which.max(reports)
+    pays[winner] <- reports[winner]
+    pays
+  }
+)
+
+is_ic_fp <- is_incentive_compatible(
+  mechanism = first_price,
+  n_agents = 2,
+  type_space = c(1, 2, 3)
+)
+is_ic_fp  # FALSE: bidders want to shade bids
+```
+
+## Individual Rationality
+
+A mechanism is individually rational if no agent gets negative utility
+from participating.
+
+```{r ir}
+is_ir <- is_individually_rational(
+  mechanism = vickrey,
+  n_agents = 2,
+  type_space = c(1, 2, 3)
+)
+is_ir
+```

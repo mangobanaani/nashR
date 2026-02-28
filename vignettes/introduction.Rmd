@@ -1,0 +1,149 @@
+---
+title: "Introduction to nashR"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to nashR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(nashR)
+```
+
+## Normal Form Games
+
+A normal form (strategic form) game specifies players, strategies, and payoffs.
+Use `normal_form()` to create a custom game or one of the built-in constructors.
+
+```{r normal-form}
+# Custom 2-player game
+game <- normal_form(
+  players = c("Row", "Col"),
+  strategies = list(c("U", "D"), c("L", "R")),
+  payoffs = list(
+    matrix(c(3, 1, 0, 2), 2, 2),  # Row payoffs
+    matrix(c(3, 0, 1, 2), 2, 2)   # Col payoffs
+  )
+)
+game
+
+# Built-in: Prisoner's Dilemma
+pd <- prisoners_dilemma()
+pd
+```
+
+## Finding Nash Equilibria
+
+The `nash_equilibria()` function automatically selects the best algorithm
+based on the game structure.
+
+```{r nash}
+# All Nash equilibria of the Prisoner's Dilemma
+eqs <- nash_equilibria(pd)
+print_equilibria(eqs, pd)
+
+# Battle of the Sexes has 3 NE: 2 pure + 1 mixed
+bos <- battle_of_sexes()
+eqs <- nash_equilibria(bos)
+print_equilibria(eqs, bos)
+```
+
+You can also request specific algorithms:
+
+```{r methods}
+# Only pure strategy equilibria
+pure_eqs <- nash_equilibria(bos, method = "pure")
+print_equilibria(pure_eqs, bos)
+
+# Lemke-Howson finds one NE via complementary pivoting
+lh <- lemke_howson(bos)
+lh$strategies
+```
+
+## Game Properties
+
+```{r properties}
+mp <- matching_pennies()
+is_zero_sum(mp)
+
+pd <- prisoners_dilemma()
+dominant_strategy(pd)
+```
+
+## Extensive Form Games
+
+Build game trees with decision nodes and terminal nodes.
+
+```{r extensive}
+# Simple game: Player 1 chooses L or R. If L, Player 2 chooses l or r.
+efg <- extensive_form() |>
+  add_node("root", player = 1, actions = c("L", "R")) |>
+  add_node("L", player = 2, actions = c("l", "r")) |>
+  add_terminal("Ll", payoffs = c(2, 1)) |>
+  add_terminal("Lr", payoffs = c(0, 0)) |>
+  add_terminal("R", payoffs = c(1, 3))
+
+# Solve by backward induction
+bi <- backward_induction(efg)
+bi$actions
+bi$outcome
+```
+
+## N-Player Games
+
+nashR supports games with more than two players.
+
+```{r n-player}
+# 3-firm Cournot oligopoly: linear demand P = 10 - Q, cost = 1
+cg <- cournot(n = 3, quantities = c(0, 1, 2, 3, 4),
+              demand = function(Q) max(10 - Q, 0), costs = 1)
+pure_eqs <- pure_nash(cg)
+length(pure_eqs)
+
+# Public goods game
+pgg <- public_goods_game(n = 3, endowment = 10, multiplier = 1.5,
+                         contribution_levels = c(0, 5, 10))
+eqs <- nash_equilibria(pgg, method = "pure")
+length(eqs)
+```
+
+For mixed NE of N-player games, the homotopy continuation method is used
+automatically:
+
+```{r homotopy}
+pgg2 <- public_goods_game(n = 3, endowment = 10, multiplier = 1.5,
+                          contribution_levels = c(0, 10))
+result <- homotopy_nash(pgg2)
+result$strategies
+```
+
+## Bayesian Games
+
+Games with incomplete information where players have private types.
+
+```{r bayesian}
+# 2-bidder first-price auction with binary valuations
+bg <- bayesian_game(
+  players = c("Bidder1", "Bidder2"),
+  type_sets = list(c("low", "high"), c("low", "high")),
+  priors = list(c(0.5, 0.5), c(0.5, 0.5)),
+  strategies = list(c("bid0", "bid1"), c("bid0", "bid1")),
+  payoff_fn = function(player, type_profile, action_profile) {
+    values <- c(1, 3)
+    v <- values[type_profile[player]]
+    bid <- (action_profile[player] - 1) * 1  # bid0=0, bid1=1
+    opp <- 3 - player
+    opp_bid <- (action_profile[opp] - 1) * 1
+    if (bid > opp_bid) return(v - bid)
+    if (bid < opp_bid) return(0)
+    return((v - bid) / 2)
+  }
+)
+bg
+
+# Find Bayesian Nash equilibria
+bne <- bayesian_nash(bg)
+bne[[1]]$strategies
+```
